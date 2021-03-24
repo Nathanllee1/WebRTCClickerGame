@@ -13,7 +13,11 @@
    let connectionObject;
 
    function getStarted() {
-      peer = new Peer();
+      peer = new Peer({
+      config: {'iceServers': [
+            { url: 'stun:stun.l.google.com:19302' },
+         ]} /* Sample servers, please use appropriate ones */
+      });
       peer.on('open', function(id) {
          console.log('My peer ID is: ' + id);
          myId = id;
@@ -21,29 +25,37 @@
          
       });
 
-      peer.on('connection', function(conn) {
-         console.log("Connection coming from ", conn);
+      peer.on('connection', (conn) => {
          connectionObject = conn;
-         appState = "Game";
+         connectionObject.on('open', () => {
+            console.log("opened!")
+            conn.send('hello!');
+            appState = 'Game'
+         });
+         connectionObject.on('data', (data) => {
+            // Will print 'hi!'
+            handleOpponentClick();
+         });
          
-      })
+      });
+      
    }
 
    function connectToPeer() {
-      peer = new Peer();
-      peer.on('connection', function(conn) {
-         console.log("connected");
-         connectionObject = conn;
-      })
+      peer = new Peer({
+      config: {'iceServers': [
+            { url: 'stun:stun.l.google.com:19302' },
+         ]} /* Sample servers, please use appropriate ones */
+      });
 
       peer.on('open', function(id) {
          console.log("my id is: ", id);
          connectionObject = peer.connect(peerId);
 
          console.log("Connecting to ", peerId, connectionObject);
-         appState = "Game";
+         
          connectionObject.on('open', function() {
-            
+            appState = "Game";
             // Receive messages
             connectionObject.on('data', function(data) {
                console.log('Received', data);
@@ -69,14 +81,18 @@
       console.log(width);
       connectionObject.send("click!");
       width += 10;
+      if (width >= 800) {
+         alert("You won!");
+         width = 400;
+      }
    }
 
    function handleOpponentClick() {
       width -= 10;
-   }
-
-   $: if (width >= 800) {
-      alert("You won!");
+      if (width <= 0) {
+         alert("You Lost :(");
+         width = 400;
+      }
    }
 
 </script>
@@ -90,7 +106,8 @@
       <button on:click={connectToPeer}>Go!</button>
    {/if}
    {#if appState == "Host Waiting"}
-      <h2>My id is: <bold>{myId}</bold></h2>
+      <h2>My id is: </h2>
+      <div class="code" ><bold>{myId}</bold></div>
       <p>Share it to your friends!</p>
    {/if}
    {#if appState == "Game"}
@@ -119,9 +136,21 @@
 		font-weight: 100;
 	}
 
+   .code {
+      margin-left: auto;
+      margin-right: auto;
+      padding-top:50px;
+      background-color:#f4f4f4;
+      width: 400px;
+      padding: auto;
+      height: 75px;
+      text-align: center;
+
+   }
+
    .clickerBar {
       height: 100px;
-      background-color: red;
+      background-color: #ff3e00;
    }
 
    .backgroundBar {
